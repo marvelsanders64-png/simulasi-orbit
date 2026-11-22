@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrbitLab — Simulasi Orbit Planet</title>
+<style>
+:root{--bg:#080d1b;--panel:#111a2e;--panel2:#17233b;--line:#263653;--text:#edf4ff;--muted:#9eafc9;--cyan:#55d6e8;--blue:#7898ff;--gold:#ffc96b}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0%,#182b4a 0,#080d1b 52%);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;min-height:100vh}
+header{padding:25px max(22px,calc((100% - 1200px)/2));display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ffffff12}
+.brand{font-size:20px;font-weight:800;letter-spacing:.5px}.brand span{color:var(--cyan)}.tag{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:7px 11px;border-radius:20px}
+main{max-width:1200px;margin:26px auto;padding:0 20px}.intro h1{font-size:clamp(25px,4vw,38px);margin:0 0 8px}.intro p{color:var(--muted);margin:0 0 22px}
+.layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.9fr);gap:18px}.card{background:linear-gradient(145deg,#121d32f2,#0e1729f2);border:1px solid var(--line);border-radius:18px;box-shadow:0 15px 40px #0003}.scene-card{padding:15px}.scene-head{display:flex;justify-content:space-between;align-items:center;padding:3px 4px 12px}.scene-head strong{font-size:14px}.live{font-size:11px;color:#8ff0d2}.live:before{content:"";display:inline-block;width:7px;height:7px;background:#62e5b5;border-radius:50%;margin-right:7px}
+canvas{width:100%;height:430px;display:block;border-radius:13px;background:radial-gradient(ellipse at center,#101e37,#07101f 70%)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;padding-top:13px}.btn{border:1px solid var(--line);background:#1a2944;color:var(--text);padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:650}.btn.primary{background:linear-gradient(100deg,#36b9d0,#527ce8);border:0;color:#061321}.btn:hover{filter:brightness(1.13)}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.metric{background:#0c1628;border:1px solid var(--line);padding:13px;border-radius:12px}.metric small{display:block;color:var(--muted);font-size:11px;margin-bottom:7px}.metric strong{font-size:19px;color:var(--cyan)}.metric em{font-style:normal;color:var(--muted);font-size:11px;margin-left:4px}
+.controls{padding:19px}.controls h2{font-size:16px;margin:0 0 16px}.control{margin:0 0 17px}.control-top{display:flex;justify-content:space-between;gap:10px;font-size:12px;margin-bottom:8px}.control-top label{color:#dce8fb}.control-top output{color:var(--cyan);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--cyan);cursor:pointer}.selectrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;font-size:12px;color:#dce8fb}select{background:#0b1527;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px}
+.note{font-size:11px;line-height:1.6;color:var(--muted);margin-top:15px;padding:12px;background:#0b1527;border-radius:10px}
+footer{max-width:1200px;margin:20px auto 30px;padding:0 20px;color:#8294b0;font-size:11px;text-align:center}
+@media(max-width:850px){.layout{grid-template-columns:1fr}canvas{height:350px}}@media(max-width:480px){header{padding:18px}.tag{display:none}main{margin-top:20px}.metrics{grid-template-columns:1fr 1fr}canvas{height:300px}}
+</style>
+</head>
+<body>
+<header><div class="brand">✦ ORBIT<span>LAB</span></div><div class="tag">SIMULATOR • NEWTONIAN GRAVITY</div></header>
+<main>
+<section class="intro"><h1>Jelajahi Gerak Orbit</h1><p>Atur karakteristik planet dan orbit, lalu amati bagaimana benda bergerak karena gravitasi.</p></section>
+<div class="layout">
+<section>
+<div class="card scene-card">
+ <div class="scene-head"><strong>VISUALISASI SISTEM</strong><span class="live" id="status">SIMULASI BERJALAN</span></div>
+ <canvas id="space" aria-label="Animasi benda mengorbit planet"></canvas>
+ <div class="actions"><button class="btn primary" id="toggle">Ⅱ Jeda</button><button class="btn" id="reset">↺ Reset</button></div>
+</div>
+<div class="metrics">
+ <div class="metric"><small>KECEPATAN ORBIT</small><strong id="velocity">—</strong><em>km/s</em></div>
+ <div class="metric"><small>PERIODE ORBIT</small><strong id="period">—</strong><em>jam</em></div>
+ <div class="metric"><small>GAYA GRAVITASI</small><strong id="gravity">—</strong><em>m/s²</em></div>
+ <div class="metric"><small>JARI-JARI ORBIT</small><strong id="orbitRead">—</strong><em>km</em></div>
+</div>
+</section>
+<aside class="card controls">
+<h2>⚙ Pengaturan Parameter</h2>
+<div class="control"><div class="control-top"><label for="mass">Massa planet</label><output id="massOut"></output></div><input id="mass" type="range" min="0.2" max="8" step="0.1" value="5.97"><div class="control-top"><span>0,2 × 10²⁴ kg</span><span>8 × 10²⁴ kg</span></div></div>
+<div class="control"><div class="control-top"><label for="density">Kerapatan planet</label><output id="densityOut"></output></div><input id="density" type="range" min="2000" max="10000" step="100" value="5514"><div class="control-top"><span>2.000 kg/m³</span><span>10.000 kg/m³</span></div></div>
+<div class="control"><div class="control-top"><label for="radius">Radius planet</label><output id="radiusOut"></output></div><input id="radius" type="range" min="3000" max="12000" step="100" value="6371"><div class="control-top"><span>3.000 km</span><span>12.000 km</span></div></div>
+<div class="control"><div class="control-top"><label for="orbit">Radius orbit dari pusat</label><output id="orbitOut"></output></div><input id="orbit" type="range" min="8000" max="50000" step="500" value="15000"><div class="control-top"><span>8.000 km</span><span>50.000 km</span></div></div>
+<div class="control"><div class="control-top"><label for="height">Ketinggian dari permukaan</label><output id="heightOut"></output></div><input id="height" type="range" min="100" max="40000" step="100" value="8629"><div class="control-top"><span>100 km</span><span>40.000 km</span></div></div>
+<div class="control"><div class="control-top"><label for="zoom">Skala zoom</label><output id="zoomOut"></output></div><input id="zoom" type="range" min="0.55" max="2" step="0.05" value="1"></div>
+<div class="selectrow"><label for="timeScale">Skala waktu</label><select id="timeScale"><option value="1">1× Normal</option><option value="5">5×</option><option value="10">10×</option><option value="100">100×</option></select></div>
+<div class="note">Model menggunakan orbit lingkaran ideal dan hukum gravitasi Newton. Saat radius planet, kerapatan, atau massa diubah, parameter lain dapat ikut disesuaikan agar hubungan fisik tetap konsisten. Nilai merupakan simulasi edukatif, bukan prediksi misi antariksa.</div>
+</aside>
+</div>
+</main>
+<footer>OrbitLab • Simulasi edukasi gravitasi Newton • G = 6,67430 × 10⁻¹¹ N·m²/kg²</footer>
+<script>
+const G=6.67430e-11, el=id=>document.getElementById(id), canvas=el('space'), ctx=canvas.getContext('2d');
+const ids=['mass','density','radius','orbit','height','zoom'];
+let angle=0, running=true, last=0, stars=[];
+function values(){
+ const M=+el('mass').value*1e24, rho=+el('density').value, R=+el('radius').value*1000;
+ const r=Math.max(R+1000,+el('orbit').value*1000);
+ const v=Math.sqrt(G*M/r), T=2*Math.PI*Math.sqrt(r**3/(G*M)), g=G*M/(R*R);
+ return {M,rho,R,r,v,T,g,height:r/1000-R/1000};
+}
+function sync(changed){
+ const R=+el('radius').value, h=+el('height').value, r0=+el('orbit').value;
+ if(changed==='height') el('orbit').value=Math.min(50000,Math.max(8000,R+h));
+ if(changed==='orbit') el('height').value=Math.min(40000,Math.max(100,r0-R));
+ if(changed==='radius'){el('height').value=Math.max(100,+el('orbit').value-R); if(+el('height').value>40000)el('height').value=40000;}
+ const m=+el('mass').value*1e24, rho=+el('density').value;
+ // Radius slider is an independent display parameter; density is shown as a separate planet property.
+ ids.forEach(id=>{let x=el(id);let o=el(id+'Out');if(o)o.textContent= id==='mass'?(+x.value).toFixed(2)+' ×10²⁴ kg':id==='density'?Math.round(+x.value).toLocaleString('id-ID')+' kg/m³':id==='radius'?Math.round(+x.value).toLocaleString('id-ID')+' km':id==='orbit'?Math.round(+x.value).toLocaleString('id-ID')+' km':id==='height'?Math.round(+x.value).toLocaleString('id-ID')+' km':(+x.value).toFixed(2)+'×';});
+ updateMetrics();
+}
+function updateMetrics(){const p=values();el('velocity').textContent=(p.v/1000).toFixed(2);el('period').textContent=(p.T/3600).toFixed(2);el('gravity').textContent=p.g.toFixed(2);el('orbitRead').textContent=(p.r/1000).toLocaleString('id-ID',{maximumFractionDigits:0});}
+ids.forEach(id=>el(id).addEventListener('input',()=>sync(id)));
+el('timeScale').addEventListener('change',()=>{});
+el('toggle').onclick=()=>{running=!running;el('toggle').textContent=running?'Ⅱ Jeda':'▶ Lanjut';el('status').textContent=running?'SIMULASI BERJALAN':'SIMULASI DIJEDA';};
+el('reset').onclick=()=>{angle=0;el('mass').value=5.97;el('density').value=5514;el('radius').value=6371;el('orbit').value=15000;el('height').value=8629;el('zoom').value=1;el('timeScale').value=1;sync();};
+function resize(){const dpr=window.devicePixelRatio||1,rect=canvas.getBoundingClientRect();canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);stars=Array.from({length:100},()=>({x:Math.random()*rect.width,y:Math.random()*rect.height,a:.2+Math.random()*.65,r:.5+Math.random()*1.2}));}
+function draw(t){const w=canvas.clientWidth,h=canvas.clientHeight,cx=w/2,cy=h/2;ctx.clearRect(0,0,w,h);
+ stars.forEach(s=>{ctx.globalAlpha=s.a;ctx.fillStyle='#d9eaff';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;
+ const p=values(), zoom=+el('zoom').value, planetR=Math.min(w,h)*.105*zoom, orbitPx=Math.min(w,h)*.36*zoom;
+ // Draw orbit ring and planet
+ ctx.strokeStyle='#6d91c966';ctx.lineWidth=1.4;ctx.setLineDash([5,7]);ctx.beginPath();ctx.ellipse(cx,cy,orbitPx,orbitPx*.58,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+ const grad=ctx.createRadialGradient(cx-planetR*.35,cy-planetR*.4,planetR*.08,cx,cy,planetR);grad.addColorStop(0,'#9ce9f2');grad.addColorStop(.42,'#397db5');grad.addColorStop(1,'#10264d');
+ ctx.fillStyle=grad;ctx.beginPath();ctx.arc(cx,cy,planetR,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle='#7ad9ec66';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,planetR+4,0,Math.PI*2);ctx.stroke();
+ // Orbiter follows elliptical perspective
+ const ox=cx+Math.cos(angle)*orbitPx, oy=cy+Math.sin(angle)*orbitPx*.58;
+ ctx.strokeStyle='#ffc96b55';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(ox,oy);ctx.stroke();
+ ctx.shadowBlur=18;ctx.shadowColor='#ffc96b';ctx.fillStyle='#ffd27d';ctx.beginPath();ctx.arc(ox,oy,7,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+ ctx.fillStyle='#eaf3ff';ctx.font='12px Segoe UI';ctx.fillText('Planet',cx-planetR*.35,cy+planetR+20);ctx.fillText('Satelit',ox+11,oy-10);
+ ctx.fillStyle='#9eafc9';ctx.font='11px Segoe UI';ctx.fillText('Orbit digambarkan secara skematis',12,h-13);
+}
+function frame(t){if(!last)last=t;const dt=Math.min((t-last)/1000,.05);last=t;if(running){const p=values();angle+=Math.sqrt(G*p.M/(p.r**3))*dt*+el('timeScale').value*5000;}draw(t);requestAnimationFrame(frame);}
+window.addEventListener('resize',resize);sync();resize();requestAnimationFrame(frame);
+</script>
+</body></html>
